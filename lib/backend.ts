@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import { SESSION_COOKIE } from "@/lib/auth";
 
-const BACKEND_URL = process.env.BACKEND_URL ?? "http://localhost:4000";
+const BACKEND_URL = "https://project-help-backend.onrender.com";
 
 /** Server-side fetch to the backend API, forwarding the admin session token as a Bearer header. */
 export async function backendFetch(path: string, init: RequestInit = {}): Promise<Response> {

@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { SESSION_COOKIE } from "@/lib/auth";
 
-const BACKEND_URL = process.env.BACKEND_URL ?? "http://localhost:4000";
+const BACKEND_URL = "https://project-help-backend.onrender.com";
 
 export async function POST(request: NextRequest) {
   const body = await request.json().catch(() => null);
