@@ -1,0 +1,65 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+@theme {
+  --font-sans: var(--font-barlow), sans-serif;
+}
+
+@theme inline {
+  --color-surface: var(--ph-surface);
+  --color-surface-2: var(--ph-surface-2);
+  --color-surface-3: var(--ph-surface-3);
+  --color-heading: var(--ph-heading);
+  --color-body: var(--ph-body);
+  --color-line: var(--ph-line);
+
+  --color-primary: var(--ph-primary);
+  --color-secondary: var(--ph-secondary);
+  --color-on-primary: var(--ph-on-primary);
+
+  --color-accent: var(--ph-accent);
+  --color-accent-2: var(--ph-accent-2);
+}
+
+:root,
+[data-theme="light"] {
+  color-scheme: light;
+
+  --ph-surface: #ffffff;
+  --ph-surface-2: #f4f5ef;
+  --ph-surface-3: #e7e9dd;
+  --ph-heading: #0e0f11;
+  --ph-body: #55585c;
+  --ph-line: #0e0f11;
+
+  --ph-primary: #c9f31d;
+  --ph-secondary: #add40c;
+  --ph-on-primary: #0e0f11;
+
+  --ph-accent: #4f6800;
+  --ph-accent-2: #3e5200;
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+
+  --ph-surface: #0e0f11;
+  --ph-surface-2: #18191b;
+  --ph-surface-3: #2a2d32;
+  --ph-heading: #ffffff;
+  --ph-body: #cccccc;
+  --ph-line: #ffffff;
+
+  --ph-primary: #c9f31d;
+  --ph-secondary: #add40c;
+  --ph-on-primary: #0e0f11;
+
+  --ph-accent: #c9f31d;
+  --ph-accent-2: #add40c;
+}
+
+body {
+  background-color: var(--ph-surface);
+  color: var(--ph-body);
+}
