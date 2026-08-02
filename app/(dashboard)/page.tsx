@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { backendFetch } from "@/lib/backend";
 import type { Lead } from "@/lib/types";
+import type { AnalyticsResponse } from "@/lib/analytics-types";
+import { AnalyticsOverview } from "@/components/admin/AnalyticsOverview";
 
 export const dynamic = "force-dynamic";
 
@@ -14,8 +16,12 @@ type Overview = {
 };
 
 export default async function AdminOverviewPage() {
-  const response = await backendFetch("/admin/stats/overview");
-  const stats: Overview = await response.json();
+  const [overviewResponse, analyticsResponse] = await Promise.all([
+    backendFetch("/admin/stats/overview"),
+    backendFetch("/admin/stats/analytics"),
+  ]);
+  const stats: Overview = await overviewResponse.json();
+  const analytics: AnalyticsResponse = await analyticsResponse.json();
 
   return (
     <div>
@@ -35,6 +41,8 @@ export default async function AdminOverviewPage() {
           </div>
         ))}
       </div>
+
+      <AnalyticsOverview data={analytics} />
 
       <div className="mt-10">
         <div className="flex items-center justify-between">
