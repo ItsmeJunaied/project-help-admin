@@ -23,6 +23,7 @@ export type AnalyticsData = {
   configured: true;
   days: number;
   totals: AnalyticsTotals;
+  previousTotals: AnalyticsTotals;
   daily: AnalyticsPoint[];
   channels: AnalyticsRow[];
   sources: AnalyticsRow[];
@@ -69,4 +70,18 @@ export function formatGaDate(yyyymmdd: string): string {
   const month = Number(yyyymmdd.slice(4, 6)) - 1;
   const day = Number(yyyymmdd.slice(6, 8));
   return new Date(year, month, day).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
+
+export type Delta = { direction: "up" | "down" | "flat"; label: string };
+
+/** Percent change vs. the prior period of equal length. `higherIsBetter` only affects color, not the arrow. */
+export function computeDelta(current: number, previous: number): Delta {
+  if (previous === 0) {
+    if (current === 0) return { direction: "flat", label: "No change" };
+    return { direction: "up", label: "New this period" };
+  }
+  const change = (current - previous) / previous;
+  if (Math.abs(change) < 0.005) return { direction: "flat", label: "No change" };
+  const sign = change > 0 ? "+" : "";
+  return { direction: change > 0 ? "up" : "down", label: `${sign}${(change * 100).toFixed(1)}%` };
 }

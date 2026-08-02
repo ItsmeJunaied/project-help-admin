@@ -1,5 +1,7 @@
+import { Radio, TrendingUp, Compass, FileText, MapPin, MonitorSmartphone, Repeat } from "lucide-react";
 import { backendFetch } from "@/lib/backend";
 import {
+  computeDelta,
   formatCompact,
   formatDuration,
   formatPercent,
@@ -8,6 +10,9 @@ import {
 import { TimeSeriesChart } from "@/components/admin/TimeSeriesChart";
 import { RankedBarList } from "@/components/admin/RankedBarList";
 import { DateRangePicker } from "@/components/admin/DateRangePicker";
+import { StatTile } from "@/components/admin/StatTile";
+import { SectionHeading } from "@/components/admin/SectionHeading";
+import { WorldMap } from "@/components/admin/WorldMap";
 
 export const dynamic = "force-dynamic";
 
@@ -42,82 +47,86 @@ export default async function AnalyticsPage({
     );
   }
 
-  const { totals } = data;
+  const { totals, previousTotals } = data;
 
   const tiles = [
-    { label: "Active users", value: formatCompact(totals.activeUsers) },
-    { label: "New users", value: formatCompact(totals.newUsers) },
-    { label: "Sessions", value: formatCompact(totals.sessions) },
-    { label: "Page views", value: formatCompact(totals.pageViews) },
-    { label: "Engaged sessions", value: formatCompact(totals.engagedSessions) },
-    { label: "Engagement rate", value: formatPercent(totals.engagementRate) },
-    { label: "Avg. session", value: formatDuration(totals.averageSessionDuration) },
-    { label: "Events", value: formatCompact(totals.eventCount) },
-  ];
-
-  const breakdowns = [
-    { title: "Traffic acquisition", dimensionLabel: "Channel", metricLabel: "Sessions", rows: data.channels },
-    { title: "Source / medium", dimensionLabel: "Source / medium", metricLabel: "Sessions", rows: data.sources },
-    { title: "Pages and screens", dimensionLabel: "Page title", metricLabel: "Views", rows: data.pages },
-    { title: "Landing pages", dimensionLabel: "Landing page", metricLabel: "Sessions", rows: data.landingPages },
-    { title: "Countries", dimensionLabel: "Country", metricLabel: "Active users", rows: data.countries },
-    { title: "Cities", dimensionLabel: "City", metricLabel: "Active users", rows: data.cities },
-    { title: "Devices", dimensionLabel: "Device category", metricLabel: "Active users", rows: data.devices },
-    { title: "Browsers", dimensionLabel: "Browser", metricLabel: "Active users", rows: data.browsers },
-    {
-      title: "Operating systems",
-      dimensionLabel: "Operating system",
-      metricLabel: "Active users",
-      rows: data.operatingSystems,
-    },
-    { title: "Events", dimensionLabel: "Event name", metricLabel: "Event count", rows: data.events },
-    {
-      title: "New vs returning",
-      dimensionLabel: "User type",
-      metricLabel: "Active users",
-      rows: data.newVsReturning,
-    },
+    { label: "Active users", value: formatCompact(totals.activeUsers), delta: computeDelta(totals.activeUsers, previousTotals.activeUsers) },
+    { label: "New users", value: formatCompact(totals.newUsers), delta: computeDelta(totals.newUsers, previousTotals.newUsers) },
+    { label: "Sessions", value: formatCompact(totals.sessions), delta: computeDelta(totals.sessions, previousTotals.sessions) },
+    { label: "Page views", value: formatCompact(totals.pageViews), delta: computeDelta(totals.pageViews, previousTotals.pageViews) },
+    { label: "Engaged sessions", value: formatCompact(totals.engagedSessions), delta: computeDelta(totals.engagedSessions, previousTotals.engagedSessions) },
+    { label: "Engagement rate", value: formatPercent(totals.engagementRate), delta: computeDelta(totals.engagementRate, previousTotals.engagementRate) },
+    { label: "Avg. session", value: formatDuration(totals.averageSessionDuration), delta: computeDelta(totals.averageSessionDuration, previousTotals.averageSessionDuration) },
+    { label: "Events", value: formatCompact(totals.eventCount), delta: computeDelta(totals.eventCount, previousTotals.eventCount) },
   ];
 
   return (
     <div>
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <h1 className="text-2xl font-bold text-heading">Analytics</h1>
+        <div>
+          <h1 className="text-2xl font-bold text-heading">Analytics</h1>
+          <p className="mt-1 flex items-center gap-1.5 text-sm text-body">
+            <Radio aria-hidden size={14} className="text-accent" />
+            {data.realtimeActiveUsers.toLocaleString()} active {data.realtimeActiveUsers === 1 ? "user" : "users"}{" "}
+            right now
+          </p>
+        </div>
         <DateRangePicker days={days} />
       </div>
 
-      <div className="mt-4 flex items-center gap-2 text-sm text-body">
-        <span className="relative flex h-2 w-2">
-          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-accent opacity-60" />
-          <span className="relative inline-flex h-2 w-2 rounded-full bg-accent" />
-        </span>
-        {data.realtimeActiveUsers.toLocaleString()} active {data.realtimeActiveUsers === 1 ? "user" : "users"} in
-        the last 30 minutes
-      </div>
-
-      <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <p className="mt-6 text-xs uppercase tracking-wide text-body">vs. the previous {days} days</p>
+      <div className="mt-2 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {tiles.map((tile) => (
-          <div key={tile.label} className="rounded-2xl border border-line/10 bg-surface p-6">
-            <p className="text-3xl font-bold text-heading">{tile.value}</p>
-            <p className="mt-1 text-sm text-body">{tile.label}</p>
-          </div>
+          <StatTile key={tile.label} label={tile.label} value={tile.value} delta={tile.delta} />
         ))}
       </div>
 
-      <div className="mt-4">
+      <div className="mt-8">
+        <SectionHeading icon={TrendingUp} title="Traffic over time" />
         <TimeSeriesChart daily={data.daily} />
       </div>
 
-      <div className="mt-4 grid gap-4 lg:grid-cols-2">
-        {breakdowns.map((breakdown) => (
-          <RankedBarList
-            key={breakdown.title}
-            title={breakdown.title}
-            dimensionLabel={breakdown.dimensionLabel}
-            metricLabel={breakdown.metricLabel}
-            rows={breakdown.rows}
-          />
-        ))}
+      <div className="mt-8">
+        <SectionHeading icon={Compass} title="Acquisition" />
+        <div className="grid gap-4 lg:grid-cols-2">
+          <RankedBarList title="Traffic acquisition" dimensionLabel="Channel" metricLabel="Sessions" rows={data.channels} />
+          <RankedBarList title="Source / medium" dimensionLabel="Source / medium" metricLabel="Sessions" rows={data.sources} />
+        </div>
+      </div>
+
+      <div className="mt-8">
+        <SectionHeading icon={FileText} title="Content" />
+        <div className="grid gap-4 lg:grid-cols-2">
+          <RankedBarList title="Pages and screens" dimensionLabel="Page title" metricLabel="Views" rows={data.pages} />
+          <RankedBarList title="Landing pages" dimensionLabel="Landing page" metricLabel="Sessions" rows={data.landingPages} />
+        </div>
+      </div>
+
+      <div className="mt-8">
+        <SectionHeading icon={MapPin} title="Geography" />
+        <div className="grid gap-4 lg:grid-cols-3">
+          <div className="lg:col-span-2">
+            <WorldMap rows={data.countries} />
+          </div>
+          <RankedBarList title="Cities" dimensionLabel="City" metricLabel="Active users" rows={data.cities} />
+        </div>
+      </div>
+
+      <div className="mt-8">
+        <SectionHeading icon={MonitorSmartphone} title="Audience" />
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <RankedBarList title="Devices" dimensionLabel="Device category" metricLabel="Active users" rows={data.devices} />
+          <RankedBarList title="Browsers" dimensionLabel="Browser" metricLabel="Active users" rows={data.browsers} />
+          <RankedBarList title="Operating systems" dimensionLabel="Operating system" metricLabel="Active users" rows={data.operatingSystems} />
+        </div>
+      </div>
+
+      <div className="mt-8">
+        <SectionHeading icon={Repeat} title="Engagement" />
+        <div className="grid gap-4 lg:grid-cols-2">
+          <RankedBarList title="New vs returning" dimensionLabel="User type" metricLabel="Active users" rows={data.newVsReturning} />
+          <RankedBarList title="Events" dimensionLabel="Event name" metricLabel="Event count" rows={data.events} />
+        </div>
       </div>
     </div>
   );
