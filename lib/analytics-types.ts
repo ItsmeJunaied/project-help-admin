@@ -4,6 +4,6 @@ export type AnalyticsOverview = {
   daily: { date: string; sessions: number }[];
 };
 
-export type AnalyticsUnconfigured = { configured: false };
+export type AnalyticsUnconfigured = { configured: false; error?: string };
 
 export type AnalyticsResponse = AnalyticsOverview | AnalyticsUnconfigured;

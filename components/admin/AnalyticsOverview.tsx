@@ -9,10 +9,12 @@ export function AnalyticsOverview({ data }: { data: AnalyticsResponse }) {
   if (!data.configured) {
     return (
       <div className="mt-10 rounded-2xl border border-dashed border-line/20 bg-surface p-6 text-center">
-        <h2 className="text-lg font-bold text-heading">Google Analytics not connected</h2>
+        <h2 className="text-lg font-bold text-heading">
+          {data.error ? "Google Analytics request failed" : "Google Analytics not connected"}
+        </h2>
         <p className="mx-auto mt-1 max-w-md text-sm text-body">
-          Add GA_PROPERTY_ID, GA_CLIENT_EMAIL, and GA_PRIVATE_KEY to the backend environment to show traffic data
-          here.
+          {data.error ??
+            "Add GA_PROPERTY_ID, GA_CLIENT_EMAIL, and GA_PRIVATE_KEY to the backend environment to show traffic data here."}
         </p>
       </div>
     );
