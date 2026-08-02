@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { LayoutDashboard, Mail, Newspaper, Briefcase, Settings, LogOut } from "lucide-react";
+import { LayoutDashboard, Mail, Newspaper, Briefcase, Settings, LogOut, ChartLine } from "lucide-react";
 
 const links = [
   { href: "/", label: "Overview", icon: LayoutDashboard },
+  { href: "/analytics", label: "Analytics", icon: ChartLine },
   { href: "/leads", label: "Leads", icon: Mail },
   { href: "/applications", label: "Applications", icon: Briefcase },
   { href: "/blog", label: "Blog Posts", icon: Newspaper },

@@ -1,9 +1,6 @@
-import type { AnalyticsResponse } from "@/lib/analytics-types";
-import { TrafficChart } from "@/components/admin/TrafficChart";
-
-function formatCompact(value: number): string {
-  return new Intl.NumberFormat("en-US", { notation: "compact", maximumFractionDigits: 1 }).format(value);
-}
+import Link from "next/link";
+import { formatCompact, type AnalyticsResponse } from "@/lib/analytics-types";
+import { TimeSeriesChart } from "@/components/admin/TimeSeriesChart";
 
 export function AnalyticsOverview({ data }: { data: AnalyticsResponse }) {
   if (!data.configured) {
@@ -24,7 +21,14 @@ export function AnalyticsOverview({ data }: { data: AnalyticsResponse }) {
 
   return (
     <div className="mt-10">
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-bold text-heading">Website traffic</h2>
+        <Link href="/analytics" className="text-sm font-semibold text-accent hover:underline">
+          View full analytics
+        </Link>
+      </div>
+
+      <div className="mt-4 grid gap-4 sm:grid-cols-3">
         {[
           { label: "Active users", value: totals.activeUsers },
           { label: "Sessions", value: totals.sessions },
@@ -38,7 +42,7 @@ export function AnalyticsOverview({ data }: { data: AnalyticsResponse }) {
       </div>
 
       <div className="mt-4">
-        <TrafficChart daily={daily} />
+        <TimeSeriesChart daily={daily} />
       </div>
     </div>
   );
