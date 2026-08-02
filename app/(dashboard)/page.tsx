@@ -13,6 +13,7 @@ type Overview = {
   recentLeads: Lead[];
   blogPostCount: number;
   applicationCount: number;
+  newsletterSubscriberCount: number;
 };
 
 export default async function AdminOverviewPage() {
@@ -34,6 +35,7 @@ export default async function AdminOverviewPage() {
           { label: "Total leads", value: stats.totalLeads },
           { label: "Job applications", value: stats.applicationCount },
           { label: "Blog posts", value: stats.blogPostCount },
+          { label: "Newsletter subscribers", value: stats.newsletterSubscriberCount },
         ].map((stat) => (
           <div key={stat.label} className="rounded-2xl border border-line/10 bg-surface p-6">
             <p className="text-3xl font-bold text-heading">{stat.value}</p>

@@ -27,6 +27,13 @@ export type Lead = {
   createdAt: string;
 };
 
+export type Subscriber = {
+  id: string;
+  email: string;
+  source: string | null;
+  createdAt: string;
+};
+
 export type JobApplication = {
   id: string;
   jobSlug: string;
