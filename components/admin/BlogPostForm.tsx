@@ -2,13 +2,12 @@
 
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Trash2, UploadCloud } from "lucide-react";
-import type { BlogPost, BlogSection } from "@/lib/blog-types";
+import { UploadCloud } from "lucide-react";
+import type { BlogContentBlock, BlogPost, BlogSection } from "@/lib/blog-types";
+import { BlogContentEditor } from "./BlogContentEditor";
 import { toast } from "@/lib/toast";
 
 const MAX_UPLOAD_BYTES = 4 * 1024 * 1024;
-
-type SectionDraft = { heading: string; paragraphsText: string };
 
 function slugify(value: string) {
   return value
@@ -18,14 +17,44 @@ function slugify(value: string) {
     .replace(/(^-|-$)/g, "");
 }
 
-function toSectionDrafts(content: unknown): SectionDraft[] {
-  if (!Array.isArray(content) || content.length === 0) {
-    return [{ heading: "", paragraphsText: "" }];
+function newId() {
+  return typeof crypto !== "undefined" && "randomUUID" in crypto
+    ? crypto.randomUUID()
+    : `block-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
+function escapeHtml(value: string) {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+function isLegacySection(value: unknown): value is BlogSection {
+  return Boolean(value) && typeof value === "object" && Array.isArray((value as BlogSection).paragraphs);
+}
+
+function isContentBlock(value: unknown): value is BlogContentBlock {
+  return Boolean(value) && typeof value === "object" && "type" in (value as Record<string, unknown>);
+}
+
+/** Loads content saved by either the old paragraph-sections editor or the new block editor. */
+function toBlocks(content: unknown): BlogContentBlock[] {
+  if (!Array.isArray(content) || content.length === 0) return [];
+
+  if (content.every(isContentBlock)) {
+    return (content as BlogContentBlock[]).map((block) => ({ ...block, id: block.id || newId() }));
   }
-  return (content as BlogSection[]).map((section) => ({
-    heading: section.heading ?? "",
-    paragraphsText: section.paragraphs.join("\n\n"),
-  }));
+
+  if (content.every(isLegacySection)) {
+    return (content as BlogSection[]).map((section) => {
+      const heading = section.heading ? `<h2>${escapeHtml(section.heading)}</h2>` : "";
+      const paragraphs = section.paragraphs.map((p) => `<p>${escapeHtml(p)}</p>`).join("");
+      return { id: newId(), type: "text", html: heading + paragraphs };
+    });
+  }
+
+  return [];
 }
 
 function readFileAsDataUrl(file: File): Promise<string> {
@@ -51,25 +80,13 @@ export function BlogPostForm({ post }: { post?: BlogPost }) {
   const [readingTime, setReadingTime] = useState(post?.readingTime ?? "");
   const [coverImageUrl, setCoverImageUrl] = useState(post?.coverImageUrl ?? "");
   const [published, setPublished] = useState(post?.published ?? true);
-  const [sections, setSections] = useState<SectionDraft[]>(toSectionDrafts(post?.content));
+  const [blocks, setBlocks] = useState<BlogContentBlock[]>(toBlocks(post?.content));
   const [isUploading, setIsUploading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   function handleTitleChange(value: string) {
     setTitle(value);
     if (!slugTouched) setSlug(slugify(value));
-  }
-
-  function updateSection(index: number, patch: Partial<SectionDraft>) {
-    setSections((current) => current.map((section, i) => (i === index ? { ...section, ...patch } : section)));
-  }
-
-  function addSection() {
-    setSections((current) => [...current, { heading: "", paragraphsText: "" }]);
-  }
-
-  function removeSection(index: number) {
-    setSections((current) => current.filter((_, i) => i !== index));
   }
 
   async function handleCoverUpload(file: File) {
@@ -104,15 +121,9 @@ export function BlogPostForm({ post }: { post?: BlogPost }) {
     event.preventDefault();
     setIsSubmitting(true);
 
-    const content: BlogSection[] = sections
-      .map((section) => ({
-        heading: section.heading.trim() || undefined,
-        paragraphs: section.paragraphsText
-          .split(/\n\s*\n/)
-          .map((p) => p.trim())
-          .filter(Boolean),
-      }))
-      .filter((section) => section.paragraphs.length > 0);
+    const content: BlogContentBlock[] = blocks.filter((block) =>
+      block.type === "text" ? block.html.replace(/<[^>]+>/g, "").trim().length > 0 : Boolean(block.url)
+    );
 
     const payload = {
       slug,
@@ -278,51 +289,7 @@ export function BlogPostForm({ post }: { post?: BlogPost }) {
         </div>
       </div>
 
-      <div>
-        <div className="flex items-center justify-between">
-          <p className="text-sm font-medium text-heading">Content sections</p>
-          <button
-            type="button"
-            onClick={addSection}
-            className="inline-flex items-center gap-1 text-sm font-semibold text-accent hover:underline"
-          >
-            <Plus aria-hidden size={16} />
-            Add section
-          </button>
-        </div>
-
-        <div className="mt-3 space-y-4">
-          {sections.map((section, index) => (
-            <div key={index} className="rounded-lg border border-line/10 bg-surface p-4">
-              <div className="flex items-center justify-between gap-3">
-                <input
-                  value={section.heading}
-                  onChange={(e) => updateSection(index, { heading: e.target.value })}
-                  placeholder="Section heading (optional)"
-                  className="flex-1 rounded-lg border border-line/10 bg-surface-2 px-3 py-2 text-sm text-heading focus:border-accent focus:outline-none"
-                />
-                {sections.length > 1 && (
-                  <button
-                    type="button"
-                    onClick={() => removeSection(index)}
-                    aria-label="Remove section"
-                    className="text-body hover:text-red-400"
-                  >
-                    <Trash2 aria-hidden size={16} />
-                  </button>
-                )}
-              </div>
-              <textarea
-                value={section.paragraphsText}
-                onChange={(e) => updateSection(index, { paragraphsText: e.target.value })}
-                rows={5}
-                placeholder={"Paragraph one.\n\nParagraph two."}
-                className="mt-3 w-full rounded-lg border border-line/10 bg-surface-2 px-3 py-2 text-sm text-heading focus:border-accent focus:outline-none"
-              />
-            </div>
-          ))}
-        </div>
-      </div>
+      <BlogContentEditor blocks={blocks} onChange={setBlocks} />
 
       <label className="flex items-center gap-2 text-sm font-medium text-heading">
         <input

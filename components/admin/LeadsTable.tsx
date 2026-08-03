@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Paperclip } from "lucide-react";
 import { LEAD_STATUSES, type Lead, type LeadStatus } from "@/lib/types";
 
 export function LeadsTable({ leads: initialLeads }: { leads: Lead[] }) {
@@ -77,6 +78,23 @@ export function LeadsTable({ leads: initialLeads }: { leads: Lead[] }) {
             </div>
 
             <p className="mt-3 whitespace-pre-wrap text-sm text-body">{lead.message}</p>
+
+            {lead.attachments && lead.attachments.length > 0 && (
+              <div className="mt-3 flex flex-wrap gap-2">
+                {lead.attachments.map((attachment, index) => (
+                  <a
+                    key={attachment.url + index}
+                    href={attachment.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1.5 rounded-full border border-line/10 bg-surface-2 px-3 py-1 text-xs font-medium text-accent hover:border-accent"
+                  >
+                    <Paperclip aria-hidden size={12} />
+                    {attachment.fileName ?? `Attachment ${index + 1}`}
+                  </a>
+                ))}
+              </div>
+            )}
           </div>
         ))}
       </div>

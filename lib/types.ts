@@ -10,6 +10,13 @@ export const APPLICATION_STATUSES: ApplicationStatus[] = [
   "HIRED",
 ];
 
+export type LeadAttachment = {
+  url: string;
+  fileName: string | null;
+  fileType: string | null;
+  size: number | null;
+};
+
 export type Lead = {
   id: string;
   name: string;
@@ -19,6 +26,7 @@ export type Lead = {
   service: string | null;
   budget: string | null;
   message: string;
+  attachments: LeadAttachment[] | null;
   source: string | null;
   status: LeadStatus;
   utmSource: string | null;
