@@ -1,13 +1,14 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { UploadCloud } from "lucide-react";
-import type { BlogContentBlock, BlogPost, BlogSection } from "@/lib/blog-types";
+import type { BlogContentBlock, BlogPost, BlogSection, BlogTextBlock } from "@/lib/blog-types";
 import { BlogContentEditor } from "./BlogContentEditor";
 import { toast } from "@/lib/toast";
 
 const MAX_UPLOAD_BYTES = 4 * 1024 * 1024;
+const META_DESCRIPTION_TARGET_LENGTH = 155;
 
 function slugify(value: string) {
   return value
@@ -15,6 +16,38 @@ function slugify(value: string) {
     .trim()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/(^-|-$)/g, "");
+}
+
+/** "YYYY-MM-DDTHH:mm" in local time, the value <input type="datetime-local"> expects. */
+function toLocalInputValue(iso: string) {
+  const date = new Date(iso);
+  const offsetMs = date.getTimezoneOffset() * 60000;
+  return new Date(date.getTime() - offsetMs).toISOString().slice(0, 16);
+}
+
+function stripHtml(html: string) {
+  return html
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/** Auto-generated SEO description: the excerpt if there is one, else the article's opening text. */
+function buildAutoDescription(excerpt: string, blocks: BlogContentBlock[]): string {
+  const bodyText = blocks
+    .filter((block): block is BlogTextBlock => block.type === "text")
+    .map((block) => stripHtml(block.html))
+    .join(" ")
+    .trim();
+
+  const source = excerpt.trim() || bodyText;
+  if (!source) return "";
+  if (source.length <= META_DESCRIPTION_TARGET_LENGTH) return source;
+
+  const truncated = source.slice(0, META_DESCRIPTION_TARGET_LENGTH);
+  const lastSpace = truncated.lastIndexOf(" ");
+  return `${lastSpace > 100 ? truncated.slice(0, lastSpace) : truncated}…`;
 }
 
 function newId() {
@@ -75,14 +108,26 @@ export function BlogPostForm({ post }: { post?: BlogPost }) {
   const [slugTouched, setSlugTouched] = useState(isEditing);
   const [excerpt, setExcerpt] = useState(post?.excerpt ?? "");
   const [metaDescription, setMetaDescription] = useState(post?.metaDescription ?? "");
+  const [metaDescriptionTouched, setMetaDescriptionTouched] = useState(isEditing);
   const [tags, setTags] = useState(post?.tags.join(", ") ?? "");
   const [author, setAuthor] = useState(post?.author ?? "Project Help Solutions");
   const [readingTime, setReadingTime] = useState(post?.readingTime ?? "");
   const [coverImageUrl, setCoverImageUrl] = useState(post?.coverImageUrl ?? "");
   const [published, setPublished] = useState(post?.published ?? true);
+  const [publishedAt, setPublishedAt] = useState(
+    toLocalInputValue(post?.publishedAt ?? new Date().toISOString())
+  );
   const [blocks, setBlocks] = useState<BlogContentBlock[]>(toBlocks(post?.content));
   const [isUploading, setIsUploading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const isScheduled = published && new Date(publishedAt) > new Date();
+
+  useEffect(() => {
+    if (metaDescriptionTouched) return;
+    const auto = buildAutoDescription(excerpt, blocks);
+    if (auto) setMetaDescription(auto);
+  }, [excerpt, blocks, metaDescriptionTouched]);
 
   function handleTitleChange(value: string) {
     setTitle(value);
@@ -139,6 +184,7 @@ export function BlogPostForm({ post }: { post?: BlogPost }) {
       coverImageUrl,
       content,
       published,
+      publishedAt: new Date(publishedAt).toISOString(),
     };
 
     try {
@@ -211,17 +257,32 @@ export function BlogPostForm({ post }: { post?: BlogPost }) {
       </div>
 
       <div>
-        <label htmlFor="metaDescription" className="block text-sm font-medium text-heading">
-          Meta description (SEO)
-        </label>
+        <div className="flex items-center justify-between">
+          <label htmlFor="metaDescription" className="block text-sm font-medium text-heading">
+            Meta description (SEO)
+          </label>
+          <span
+            className={`text-xs ${
+              metaDescription.length > 160 ? "text-red-400" : "text-body"
+            }`}
+          >
+            {metaDescription.length}/160
+          </span>
+        </div>
         <textarea
           id="metaDescription"
           required
           rows={2}
           value={metaDescription}
-          onChange={(e) => setMetaDescription(e.target.value)}
+          onChange={(e) => {
+            setMetaDescriptionTouched(true);
+            setMetaDescription(e.target.value);
+          }}
           className="mt-2 w-full rounded-lg border border-line/10 bg-surface px-4 py-2.5 text-heading focus:border-accent focus:outline-none"
         />
+        {!metaDescriptionTouched && (
+          <p className="mt-1 text-xs text-body">Auto-filled from your content — edit anytime.</p>
+        )}
       </div>
 
       <div className="grid gap-6 sm:grid-cols-2">
@@ -291,6 +352,24 @@ export function BlogPostForm({ post }: { post?: BlogPost }) {
 
       <BlogContentEditor blocks={blocks} onChange={setBlocks} />
 
+      <div>
+        <label htmlFor="publishedAt" className="block text-sm font-medium text-heading">
+          Publish date &amp; time
+        </label>
+        <input
+          id="publishedAt"
+          type="datetime-local"
+          value={publishedAt}
+          onChange={(e) => setPublishedAt(e.target.value)}
+          className="mt-2 w-full max-w-xs rounded-lg border border-line/10 bg-surface px-4 py-2.5 text-heading focus:border-accent focus:outline-none"
+        />
+        <p className="mt-1 text-xs text-body">
+          {isScheduled
+            ? "Set in the future — this post will go live automatically at that time."
+            : "Leave as now, or pick a future time to schedule this post."}
+        </p>
+      </div>
+
       <label className="flex items-center gap-2 text-sm font-medium text-heading">
         <input
           type="checkbox"
@@ -298,7 +377,7 @@ export function BlogPostForm({ post }: { post?: BlogPost }) {
           onChange={(e) => setPublished(e.target.checked)}
           className="h-4 w-4 rounded border-line/20"
         />
-        Published
+        {isScheduled ? "Publish (scheduled)" : "Published"}
       </label>
 
       <button

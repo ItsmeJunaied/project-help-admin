@@ -49,14 +49,26 @@ export function BlogPostList({ posts: initialPosts }: { posts: BlogPost[] }) {
           </p>
         )}
 
-        {posts.map((post) => (
+        {posts.map((post) => {
+          const isScheduled = post.published && new Date(post.publishedAt) > new Date();
+
+          return (
           <div
             key={post.id}
             className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-line/10 bg-surface p-5"
           >
             <div>
               <p className="font-bold text-heading">{post.title}</p>
-              <p className="text-xs text-body">/blog/{post.slug}</p>
+              <p className="text-xs text-body">
+                /blog/{post.slug} &middot;{" "}
+                {new Date(post.publishedAt).toLocaleString("en-US", {
+                  month: "short",
+                  day: "numeric",
+                  year: "numeric",
+                  hour: "numeric",
+                  minute: "2-digit",
+                })}
+              </p>
             </div>
 
             <div className="flex items-center gap-3">
@@ -64,10 +76,14 @@ export function BlogPostList({ posts: initialPosts }: { posts: BlogPost[] }) {
                 type="button"
                 onClick={() => togglePublished(post)}
                 className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                  post.published ? "bg-primary/10 text-accent" : "bg-surface-2 text-body"
+                  isScheduled
+                    ? "bg-amber-500/10 text-amber-500"
+                    : post.published
+                      ? "bg-primary/10 text-accent"
+                      : "bg-surface-2 text-body"
                 }`}
               >
-                {post.published ? "Published" : "Draft"}
+                {isScheduled ? "Scheduled" : post.published ? "Published" : "Draft"}
               </button>
 
               <Link
@@ -88,7 +104,8 @@ export function BlogPostList({ posts: initialPosts }: { posts: BlogPost[] }) {
               </button>
             </div>
           </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
