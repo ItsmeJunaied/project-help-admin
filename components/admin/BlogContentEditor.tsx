@@ -29,6 +29,13 @@ function newId() {
     : `block-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
+/** "team-meeting_2024.jpg" -> "Team meeting 2024" — a reasonable starting point, still editable. */
+function filenameToAlt(fileName: string): string {
+  const withoutExt = fileName.replace(/\.[^./]+$/, "");
+  const words = withoutExt.replace(/[-_]+/g, " ").trim();
+  return words.charAt(0).toUpperCase() + words.slice(1);
+}
+
 function readFileAsDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -86,7 +93,7 @@ export function BlogContentEditor({ blocks, onChange }: BlogContentEditorProps) 
           });
           const data = await response.json();
           if (!response.ok) throw new Error(data?.error ?? `Upload failed for ${file.name}`);
-          const block: BlogImageBlock = { id: newId(), type: "image", url: data.url, alt: "" };
+          const block: BlogImageBlock = { id: newId(), type: "image", url: data.url, alt: filenameToAlt(file.name) };
           return block;
         })
       );
